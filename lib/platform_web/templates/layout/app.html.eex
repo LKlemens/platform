@@ -12,14 +12,23 @@
       <section class="container">
         <nav role="navigation">
           <ul>
-            <li><a href="https://hexdocs.pm/phoenix/overview.html">Get Started</a></li>
+            <%= if @current_user do %>
+              <p>Signed in as <strong><%= @current_user.username %></strong></p>
+              <%= link "Sign Out", to: Routes.player_session_path(@conn, :delete, @current_user), method: "delete", class: "button" %>
+            <% else %>
+              <%= link "Sign Up", to: Routes.player_path(@conn, :new), class: "button" %>
+              <%= link "Sign In", to: Routes.player_session_path(@conn, :new), class: "button"%>
+            <% end %>
+
+
+
           </ul>
         </nav>
         <a href="http://phoenixframework.org/" class="phx-logo">
-          <img src="<%= Routes.static_path(@conn, "/images/phoenix.png") %>" alt="Phoenix Framework Logo"/>
-        </a>
+          <img src="<%= Routes.static_path(@conn, "/images/phoenix.png") %>" alt="Phoenix framework logo"/>
       </section>
     </header>
+
     <main role="main" class="container">
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>

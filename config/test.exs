@@ -16,3 +16,6 @@ config :platform, PlatformWeb.Endpoint,
 
 # Print only warnings and errors during test
 config :logger, level: :warn
+
+# reduce bcypt rounds
+config :bcrypt_elixir, :log_rounds, 4
