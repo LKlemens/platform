@@ -24,7 +24,7 @@
 
           </ul>
         </nav>
-        <a href="http://phoenixframework.org/" class="phx-logo">
+        <a class="phx-logo">
           <img src="<%= Routes.static_path(@conn, "/images/phoenix.png") %>" alt="Phoenix framework logo"/>
       </section>
     </header>
