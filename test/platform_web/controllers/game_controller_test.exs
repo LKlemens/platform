@@ -7,16 +7,18 @@ defmodule PlatformWeb.GameControllerTest do
   @create_attrs %{
     description: "some description",
     featured: true,
+    slug: "some slug",
     thumbnail: "some thumbnail",
     title: "some title"
   }
   @update_attrs %{
     description: "some updated description",
     featured: false,
+    slug: "some updated slug",
     thumbnail: "some updated thumbnail",
     title: "some updated title"
   }
-  @invalid_attrs %{description: nil, featured: nil, thumbnail: nil, title: nil}
+  @invalid_attrs %{description: nil, featured: nil, slug: nil, thumbnail: nil, title: nil}
 
   def fixture(:game) do
     {:ok, game} = Products.create_game(@create_attrs)
@@ -45,6 +47,7 @@ defmodule PlatformWeb.GameControllerTest do
                "id" => id,
                "description" => "some description",
                "featured" => true,
+               "slug" => "some slug",
                "thumbnail" => "some thumbnail",
                "title" => "some title"
              } = json_response(conn, 200)["data"]
@@ -69,6 +72,7 @@ defmodule PlatformWeb.GameControllerTest do
                "id" => id,
                "description" => "some updated description",
                "featured" => false,
+               "slug" => "some updated slug",
                "thumbnail" => "some updated thumbnail",
                "title" => "some updated title"
              } = json_response(conn, 200)["data"]

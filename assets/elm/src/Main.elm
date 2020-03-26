@@ -43,6 +43,7 @@ type alias Player =
 type alias Game =
     { description : String
     , featured : Bool
+    , slug : String
     , id : Int
     , thumbnail : String
     , title : String
@@ -107,9 +108,10 @@ fetchGamesList =
 
 decodeGame : Decode.Decoder Game
 decodeGame =
-    Decode.map5 Game
+    Decode.map6 Game
         (Decode.field "description" Decode.string)
         (Decode.field "featured" Decode.bool)
+        (Decode.field "slug" Decode.string)
         (Decode.field "id" Decode.int)
         (Decode.field "thumbnail" Decode.string)
         (Decode.field "title" Decode.string)
@@ -181,6 +183,27 @@ view model =
         ]
 
 
+
+-- featured : Model -> Html msg
+-- featured model =
+--     case featuredGame model.gamesList of
+--         Just game ->
+--             div [ class "row featured" ]
+--                 [ div [ class "container" ]
+--                     [ div [ class "featured-img" ]
+--                         [ img [ class "featured-thumbnail", src game.thumbnail ] [] ]
+--                     , div [ class "featured-data" ]
+--                         [ h2 [] [ text "Featured" ]
+--                         , h3 [] [ text game.title ]
+--                         , p [] [ text game.description ]
+--                         , button [ class "button" ] [ text "Play Now!" ]
+--                         ]
+--                     ]
+--                 ]
+--         Nothing ->
+--             div [] []
+
+
 featured : Model -> Html msg
 featured model =
     case featuredGame model.gamesList of
@@ -193,7 +216,11 @@ featured model =
                         [ h2 [] [ text "Featured" ]
                         , h3 [] [ text game.title ]
                         , p [] [ text game.description ]
-                        , button [ class "button" ] [ text "Play Now!" ]
+                        , a
+                            [ class "button"
+                            , href ("games/" ++ game.slug)
+                            ]
+                            [ text "Play Now!" ]
                         ]
                     ]
                 ]
@@ -276,7 +303,7 @@ gamesList gameTitles =
 
 gamesListItem : Game -> Html msg
 gamesListItem game =
-    a [ href "#" ]
+    a [ href ("games/" ++ game.slug) ]
         [ li [ class "game-item" ]
             [ div [ class "game-image" ]
                 [ img [ src game.thumbnail ] []
