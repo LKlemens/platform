@@ -7,6 +7,7 @@ import Json.Decode as Decode
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Time
 
 
 
@@ -32,6 +33,9 @@ type alias Model =
     , characterPositionX : Int
     , itemPositionX : Int
     , itemPositionY : Int
+    , itemsCollected : Int
+    , playerScore : Int
+    , timeRemaining : Int
     }
 
 
@@ -42,6 +46,9 @@ initialModel =
     , characterPositionY = 300
     , itemPositionX = 500
     , itemPositionY = 300
+    , itemsCollected = 0
+    , playerScore = 0
+    , timeRemaining = 10
     }
 
 
@@ -55,7 +62,8 @@ init _ =
 
 
 type Msg
-    = GameLoop Float
+    = CountdownTimer Time.Posix
+    | GameLoop Float
     | KeyDown String
     | NoOp
     | SetNewItemPositionX Int
@@ -88,7 +96,12 @@ update msg model =
 
         GameLoop time ->
             if characterFoundItem model then
-                ( model, Random.generate SetNewItemPositionX (Random.int 50 500) )
+                ( { model
+                    | itemsCollected = model.itemsCollected + 1
+                    , playerScore = model.playerScore + 100
+                  }
+                , Random.generate SetNewItemPositionX (Random.int 50 500)
+                )
 
             else
                 ( model, Cmd.none )
@@ -99,6 +112,13 @@ update msg model =
 
         SetNewItemPositionX newPosX ->
             ( { model | itemPositionX = newPosX }, Cmd.none )
+
+        CountdownTimer time ->
+            if model.timeRemaining > 0 then
+                ( { model | timeRemaining = model.timeRemaining - 1 }, Cmd.none )
+
+            else
+                ( model, Cmd.none )
 
 
 characterFoundItem : Model -> Bool
@@ -125,6 +145,7 @@ subscriptions model =
     Sub.batch
         [ Browser.Events.onKeyDown (Decode.map KeyDown keyDecoder)
         , Browser.Events.onAnimationFrameDelta GameLoop
+        , Time.every 1000 CountdownTimer
         ]
 
 
@@ -151,6 +172,9 @@ viewGame model =
         , viewGameGround
         , viewCharacter model
         , viewItem model
+        , viewGameScore model
+        , viewItemsCollected model
+        , viewGameTime model
         ]
 
 
@@ -177,6 +201,32 @@ viewGameSky =
         []
 
 
+viewGameText : Int -> Int -> String -> Svg Msg
+viewGameText positionX positionY str =
+    Svg.text_
+        [ x (String.fromInt positionX)
+        , y (String.fromInt positionY)
+        , fontFamily "Courier"
+        , fontWeight "bold"
+        , fontSize "16"
+        ]
+        [ Svg.text str ]
+
+
+viewGameScore : Model -> Svg Msg
+viewGameScore model =
+    let
+        currentScore =
+            model.playerScore
+                |> String.fromInt
+                |> String.padLeft 5 '0'
+    in
+    Svg.svg []
+        [ viewGameText 25 25 "SCORE"
+        , viewGameText 25 40 currentScore
+        ]
+
+
 viewGameGround : Svg Msg
 viewGameGround =
     rect
@@ -199,6 +249,41 @@ viewCharacter model =
         , height "50"
         ]
         []
+
+
+viewItemsCollected : Model -> Svg Msg
+viewItemsCollected model =
+    let
+        currentItemCount =
+            model.itemsCollected
+                |> String.fromInt
+                |> String.padLeft 3 '0'
+    in
+    Svg.svg []
+        [ image
+            [ xlinkHref "/images/character.gif"
+            , x "275"
+            , y "18"
+            , width "15"
+            , height "15"
+            ]
+            []
+        , viewGameText 300 30 ("x " ++ currentItemCount)
+        ]
+
+
+viewGameTime : Model -> Svg Msg
+viewGameTime model =
+    let
+        currentTime =
+            model.timeRemaining
+                |> String.fromInt
+                |> String.padLeft 4 '0'
+    in
+    Svg.svg []
+        [ viewGameText 525 25 "TIME"
+        , viewGameText 525 40 currentTime
+        ]
 
 
 viewItem : Model -> Svg Msg
