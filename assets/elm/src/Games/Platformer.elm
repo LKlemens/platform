@@ -1,9 +1,12 @@
-module Games.Platformer exposing (main)
+port module Games.Platformer exposing (main)
 
 import Browser
 import Browser.Events
-import Html exposing (Html, div)
+import Html exposing (Html, button, div, h2, li, ul)
+import Html.Attributes
+import Html.Events
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -27,10 +30,16 @@ main =
 -- MODEL
 
 
+type alias Gameplay =
+    { playerScore : Int
+    }
+
+
 type alias Model =
     { direction : Direction
     , characterPositionY : Int
     , characterPositionX : Int
+    , gameplays : List Gameplay
     , gameState : GameState
     , itemPositionX : Int
     , itemPositionY : Int
@@ -45,6 +54,7 @@ initialModel =
     { direction = Right
     , characterPositionX = 50
     , characterPositionY = 300
+    , gameplays = []
     , gameState = StartScreen
     , itemPositionX = 500
     , itemPositionY = 300
@@ -64,10 +74,12 @@ init _ =
 
 
 type Msg
-    = CountdownTimer Time.Posix
+    = BroadcastScore Encode.Value
+    | CountdownTimer Time.Posix
     | GameLoop Float
     | KeyDown String
     | NoOp
+    | ReceiveScoreFromPhoenix Encode.Value
     | SetNewItemPositionX Int
 
 
@@ -86,6 +98,9 @@ type GameState
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        BroadcastScore value ->
+            ( model, broadcastScore value )
+
         KeyDown key ->
             case key of
                 "ArrowRight" ->
@@ -156,6 +171,16 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        ReceiveScoreFromPhoenix incomingJsonData ->
+            case Decode.decodeValue decodeGameplay incomingJsonData of
+                Ok gameplay ->
+                    Debug.log "Successfully received score data."
+                        ( { model | gameplays = gameplay :: model.gameplays }, Cmd.none )
+
+                Err message ->
+                    Debug.log ("Error receiving score data: " ++ Debug.toString message)
+                        ( model, Cmd.none )
+
         SetNewItemPositionX newPosX ->
             ( { model | itemPositionX = newPosX }, Cmd.none )
 
@@ -165,6 +190,12 @@ update msg model =
 
             else
                 ( model, Cmd.none )
+
+
+decodeGameplay : Decode.Decoder Gameplay
+decodeGameplay =
+    Decode.map Gameplay
+        (Decode.field "player_score" Decode.int)
 
 
 characterFoundItem : Model -> Bool
@@ -192,6 +223,7 @@ subscriptions model =
         [ Browser.Events.onKeyDown (Decode.map KeyDown keyDecoder)
         , Browser.Events.onAnimationFrameDelta GameLoop
         , Time.every 1000 CountdownTimer
+        , receiveScoreFromPhoenix ReceiveScoreFromPhoenix
         ]
 
 
@@ -201,13 +233,26 @@ keyDecoder =
 
 
 
+--PORTS
+
+
+port broadcastScore : Encode.Value -> Cmd msg
+
+
+port receiveScoreFromPhoenix : (Encode.Value -> msg) -> Sub msg
+
+
+
 -- VIEW
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ viewGame model ]
+        [ viewGame model
+        , viewBroadcastScoreButton model
+        , viewGameplaysIndex model
+        ]
 
 
 viewGame : Model -> Svg Msg
@@ -404,3 +449,43 @@ viewGameOverScreenText =
         [ viewGameText 260 160 "Game Over"
         , viewGameText 140 180 "Press the SPACE BAR key to restart."
         ]
+
+
+viewBroadcastScoreButton : Model -> Html Msg
+viewBroadcastScoreButton model =
+    let
+        broadcastEvent =
+            model.playerScore
+                |> Encode.int
+                |> BroadcastScore
+                |> Html.Events.onClick
+    in
+    button
+        [ broadcastEvent
+        , Html.Attributes.class "button"
+        ]
+        [ text "Broadcast Score Over Socket" ]
+
+
+viewGameplaysIndex : Model -> Html Msg
+viewGameplaysIndex model =
+    if List.isEmpty model.gameplays then
+        div [] []
+
+    else
+        div [ Html.Attributes.class "gameplays-index container" ]
+            [ h2 [] [ text "Player Scores" ]
+            , viewGameplaysList model.gameplays
+            ]
+
+
+viewGameplaysList : List Gameplay -> Html Msg
+viewGameplaysList gameplays =
+    ul [ Html.Attributes.class "gameplays-list" ]
+        (List.map viewGameplayItem gameplays)
+
+
+viewGameplayItem : Gameplay -> Html Msg
+viewGameplayItem gameplay =
+    li [ Html.Attributes.class "gameplay-item" ]
+        [ text ("Player Score: " ++ String.fromInt gameplay.playerScore) ]
