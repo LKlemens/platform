@@ -1,3 +1,5 @@
+### Play now http://167.71.36.208:4000/games/platformer :)
+
 # Platform
 
 To start your Phoenix server:
